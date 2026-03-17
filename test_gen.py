@@ -512,29 +512,44 @@ def apply_motion(net, seg_dir, cfg, type_fn=None, num_shapes=10):
                 np.flip(new_points_m.detach().cpu().numpy(), -1) + 1.0
             ) / 2.0
             type_mesh.GetPoints().SetData(numpy_to_vtk(np.squeeze(new_points_m_out)))
-            write_vtk_polydata(
-                type_mesh, os.path.join(tmplt_dir, "phase{}.vtp".format(i))
-            )
+            if os.path.splitext(f)[1]==".vtp":
+                write_vtk_polydata(
+                    type_mesh, os.path.join(tmplt_dir, "phase{}.vtp".format(i))
+                )
+            elif os.path.splitext(f)[1]==".vtu":
+                write_vtu(
+                    type_mesh, os.path.join(tmplt_dir, "phase{}.vtu".format(i))
+                )
             new_points, _, _ = net.decoder.flow(
                 F.tanh(new_points_m), None, z_s, inverse=False
             )
             new_points = (np.flip(new_points.detach().cpu().numpy(), -1) + 1.0) / 2.0
             type_mesh.GetPoints().SetData(numpy_to_vtk(np.squeeze(new_points)))
-            write_vtk_polydata(
-                type_mesh, os.path.join(mesh_dir, "phase{}.vtp".format(i))
-            )
+            if os.path.splitext(f)[1]==".vtp":
+                write_vtk_polydata(
+                    type_mesh, os.path.join(mesh_dir, "phase{}.vtp".format(i))
+                )
+            elif os.path.splitext(f)[1]==".vtu":
+                write_vtu(
+                    type_mesh, os.path.join(mesh_dir, "phase{}.vtu".format(i))
+                )
 
             # less motion
-            z_m_l = (z_m - z_m_list[0] * 0.5) + z_m_list[0]
+            z_m_l = (z_m - z_m_list[0] * 0.3) + z_m_list[0]
             new_points_m, _, _ = net.decoder.flow(points, None, z_m_l, inverse=False)
             new_points, _, _ = net.decoder.flow(
                 F.tanh(new_points_m), None, z_s, inverse=False
             )
             new_points = (np.flip(new_points.detach().cpu().numpy(), -1) + 1.0) / 2.0
             type_mesh.GetPoints().SetData(numpy_to_vtk(np.squeeze(new_points)))
-            write_vtk_polydata(
-                type_mesh, os.path.join(mesh_dir_less, "phase{}.vtp".format(i))
-            )
+            if os.path.splitext(f)[1]==".vtp":
+                write_vtk_polydata(
+                    type_mesh, os.path.join(mesh_dir_less, "phase{}.vtp".format(i))
+                )
+            elif os.path.splitext(f)[1]==".vtu":
+                write_vtu(
+                    type_mesh, os.path.join(mesh_dir_less, "phase{}.vtu".format(i))
+                )
 
 
 def fit_sparse_testdata(
@@ -1362,6 +1377,9 @@ if __name__ == "__main__":
     parser.add_argument("--grid_size", type=int, default=2)
     args = parser.parse_args()
 
+    torch.manual_seed(42)
+    np.random.seed(42)
+
     MODE = ["train"]
     num_block = 1
     with open(args.config, "r") as ymlfile:
@@ -1494,9 +1512,11 @@ if __name__ == "__main__":
                 original_copy = bool(
                     re.match("ct_[a-z]+_\d+", data["filename"][0])
                 ) or bool(re.match("ct_\d+_image", data["filename"][0]))
-                print(i, data["filename"][0], original_copy)
+                print(i, train.idx_dict[data['fn'][0]], data["filename"][0],  original_copy)
+                # train_data = torch.tensor(train.idx_dict[data['fn'][0]])
+                train_data = data["idx"]
                 if original_copy:
-                    z_s = lat_vecs(data["idx"].to(device)).view(
+                    z_s = lat_vecs(train_data.to(device)).view(
                         1,
                         cfg["net"]["z_s_dim"],
                         cfg["net"]["l_dim"],
@@ -1504,7 +1524,7 @@ if __name__ == "__main__":
                         cfg["net"]["l_dim"],
                     )
                     if cfg["net"]["two_shape_codes"]:
-                        z_s_ds = lat_vecs_ds(data["idx"].to(device)).view(
+                        z_s_ds = lat_vecs_ds(train_data.to(device)).view(
                             1,
                             cfg["net"]["z_s_dim"],
                             cfg["net"]["l_dim"],
@@ -1648,7 +1668,8 @@ if __name__ == "__main__":
     if test_ops["rand_motion_gen"]:
         template_dir = cfg["data"]["template_mesh_dir"]
         seg_dir = cfg["data"]["motion_segmentation_dir"]
-        mesh_fns = glob.glob(os.path.join(template_dir, "*.vtp"))
+        # mesh_fns = glob.glob(os.path.join(template_dir, "*.vtp"))
+        mesh_fns = glob.glob(os.path.join(template_dir, "*.vtu")) # Using volume mesh
 
         if not os.path.exists(os.path.join(seg_dir, "motion.pkl")):
             get_motion(net, cfg, seg_dir, iter_num=100)

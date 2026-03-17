@@ -1,8 +1,10 @@
 import os
 import sys
 
-sys.path.append(os.path.join(os.path.dirname(__file__), "../vtk_utils"))
-sys.path.append(os.path.join(os.path.dirname(__file__), "../utils"))
+# sys.path.append(os.path.join(os.path.dirname(__file__), "../vtk_utils"))
+# sys.path.append(os.path.join(os.path.dirname(__file__), "../utils"))
+sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
+
 import csv
 import pickle
 

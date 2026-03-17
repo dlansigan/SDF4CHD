@@ -287,6 +287,13 @@ class SDFDataset(Dataset):
             sdf_py_total, self.n_pts, self.factor, binary=self.binary
         )
 
+        # # DEBUG
+        # print(item,os.path.basename(self.fns[item]).split('.')[0],self.fns[item])
+
+        data_dict = {'idx': item, 'points': points, 'pt_sdv': point_values.squeeze(), \
+                    'filename': os.path.basename(self.fns[item]).split('.')[0], 'y': seg_py, 'gt_binary':gt_binary, 'sdf': sdf_py_total,\
+                    'fn': self.fns[item]}
+
         if self.diag_data is not None:
             type_data = self.diag_data[item, :]
             data_dict["chd_type"] = torch.from_numpy(type_data.astype(np.float32))

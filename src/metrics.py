@@ -57,8 +57,8 @@ def evaluate_poly_distances(poly, gt, NUM):
     return assd_list, haus_list, poly_dist
 
 def dice_score(pred, true):
-    pred = pred.astype(np.int)                                   
-    true = true.astype(np.int)                                   
+    pred = pred.astype(int)                                   
+    true = true.astype(int)                                   
     num_class = np.unique(true)
     
     #change to one hot
@@ -73,8 +73,8 @@ def dice_score(pred, true):
     return dice_out 
 
 def volume_score(pred, true):
-    pred = pred.astype(np.int)
-    true = true.astype(np.int)
+    pred = pred.astype(int)
+    true = true.astype(int)
     num_class = np.unique(true)
     verr_out = [None]*len(num_class)
     
@@ -90,8 +90,8 @@ def volume_score(pred, true):
     return verr_out
 
 def jaccard_score(pred, true):
-    pred = pred.astype(np.int)
-    true = true.astype(np.int)
+    pred = pred.astype(int)
+    true = true.astype(int)
     num_class = np.unique(true)
 
     #change to one hot
