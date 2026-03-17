@@ -9,7 +9,7 @@ data:
     exclude_types: ['SV']
   point_sampling_factor: 20
   tmplt_sdf: data/processed_segs/pytorch/ct_1017_image.pkl
-  template_mesh_dir: data/template_LV_vol
+  template_mesh_dir: data/template_LV
   motion_segmentation_dir: data/motion_seg/patient1_processed
 net:
   out_dim: 7
