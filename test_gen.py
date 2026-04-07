@@ -508,6 +508,7 @@ def apply_motion(net, seg_dir, cfg, type_fn=None, num_shapes=10):
         if cfg['data']['save_zs']:
             np.save(os.path.join(cfg['data']['output_zs_dir'],"zs_{:04d}.npy".format(j)),z_s.detach().cpu().numpy())
         for i, z_m in enumerate(z_m_list):
+            print("mesh {}, phase {}".format(i, j))
             # original motion
             new_points_m, _, _ = net.decoder.flow(points, None, z_m, inverse=False)
             new_points_m_out = (
@@ -523,7 +524,7 @@ def apply_motion(net, seg_dir, cfg, type_fn=None, num_shapes=10):
                     type_mesh, os.path.join(tmplt_dir, "phase{}.vtu".format(i))
                 )
             new_points, _, _ = net.decoder.flow(
-                F.tanh(new_points_m), None, z_s, inverse=False
+                new_points_m, None, z_s, inverse=False
             )
             new_points = (np.flip(new_points.detach().cpu().numpy(), -1) + 1.0) / 2.0
             type_mesh.GetPoints().SetData(numpy_to_vtk(np.squeeze(new_points)))
@@ -536,22 +537,22 @@ def apply_motion(net, seg_dir, cfg, type_fn=None, num_shapes=10):
                     type_mesh, os.path.join(mesh_dir, "phase{}.vtu".format(i))
                 )
 
-            # less motion
-            z_m_l = (z_m - z_m_list[0] * 0.3) + z_m_list[0]
-            new_points_m, _, _ = net.decoder.flow(points, None, z_m_l, inverse=False)
-            new_points, _, _ = net.decoder.flow(
-                F.tanh(new_points_m), None, z_s, inverse=False
-            )
-            new_points = (np.flip(new_points.detach().cpu().numpy(), -1) + 1.0) / 2.0
-            type_mesh.GetPoints().SetData(numpy_to_vtk(np.squeeze(new_points)))
-            if os.path.splitext(f)[1]==".vtp":
-                write_vtk_polydata(
-                    type_mesh, os.path.join(mesh_dir_less, "phase{}.vtp".format(i))
-                )
-            elif os.path.splitext(f)[1]==".vtu":
-                write_vtu(
-                    type_mesh, os.path.join(mesh_dir_less, "phase{}.vtu".format(i))
-                )
+            # # less motion
+            # z_m_l = (z_m - z_m_list[0] * 0.3) + z_m_list[0]
+            # new_points_m, _, _ = net.decoder.flow(points, None, z_m_l, inverse=False)
+            # new_points, _, _ = net.decoder.flow(
+            #     F.tanh(new_points_m), None, z_s, inverse=False
+            # )
+            # new_points = (np.flip(new_points.detach().cpu().numpy(), -1) + 1.0) / 2.0
+            # type_mesh.GetPoints().SetData(numpy_to_vtk(np.squeeze(new_points)))
+            # if os.path.splitext(f)[1]==".vtp":
+            #     write_vtk_polydata(
+            #         type_mesh, os.path.join(mesh_dir_less, "phase{}.vtp".format(i))
+            #     )
+            # elif os.path.splitext(f)[1]==".vtu":
+            #     write_vtu(
+            #         type_mesh, os.path.join(mesh_dir_less, "phase{}.vtu".format(i))
+            #     )
 
 
 def fit_sparse_testdata(
