@@ -505,6 +505,8 @@ def apply_motion(net, seg_dir, cfg, type_fn=None, num_shapes=10):
             torch.from_numpy(stats[0].astype(np.float32)),
             std=torch.from_numpy(stats[1].astype(np.float32) * 0.2),
         ).to(device)
+        if cfg['data']['save_zs']:
+            np.save(os.path.join(cfg['data']['output_zs_dir'],"zs_{:04d}.npy".format(j)),z_s.detach().cpu().numpy())
         for i, z_m in enumerate(z_m_list):
             # original motion
             new_points_m, _, _ = net.decoder.flow(points, None, z_m, inverse=False)
@@ -1400,6 +1402,9 @@ if __name__ == "__main__":
     dice_score_list, dice_noCorr_score_list, time_list = [], [], []
     z_vector_list = {}
 
+    if cfg["data"]["save_zs"]:
+        os.makedirs(cfg["data"]["output_zs_dir"],exist_ok=True)
+
     # TRAINING ACCURACY
     train = dataset.SDFDataset(
         cfg["data"]["train_dir"],
@@ -1668,8 +1673,8 @@ if __name__ == "__main__":
     if test_ops["rand_motion_gen"]:
         template_dir = cfg["data"]["template_mesh_dir"]
         seg_dir = cfg["data"]["motion_segmentation_dir"]
-        # mesh_fns = glob.glob(os.path.join(template_dir, "*.vtp"))
-        mesh_fns = glob.glob(os.path.join(template_dir, "*.vtu")) # Using volume mesh
+        mesh_fns = glob.glob(os.path.join(template_dir, "*.vtp"))
+        # mesh_fns = glob.glob(os.path.join(template_dir, "*.vtu")) # Using volume mesh
 
         if not os.path.exists(os.path.join(seg_dir, "motion.pkl")):
             get_motion(net, cfg, seg_dir, iter_num=100)

@@ -11,6 +11,8 @@ data:
   tmplt_sdf: data/processed_segs/pytorch/ct_1017_image.pkl
   template_mesh_dir: data/template_LV
   motion_segmentation_dir: data/motion_seg/patient1_processed
+  save_zs: true
+  output_zs_dir: data/sampled_shapes
 net:
   out_dim: 7
   n_conv_blocks: 5
