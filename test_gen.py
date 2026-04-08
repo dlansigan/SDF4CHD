@@ -495,11 +495,11 @@ def apply_motion(net, seg_dir, cfg, type_fn=None, num_shapes=10):
         os.makedirs(tmplt_dir)
     for j in range(num_shapes):
         mesh_dir = os.path.join(tmplt_dir, "mesh_{}".format(j))
-        mesh_dir_less = os.path.join(tmplt_dir, "mesh_{}_less_motion".format(j))
+        # mesh_dir_less = os.path.join(tmplt_dir, "mesh_{}_less_motion".format(j))
         if not os.path.exists(mesh_dir):
             os.makedirs(mesh_dir)
-        if not os.path.exists(mesh_dir_less):
-            os.makedirs(mesh_dir_less)
+        # if not os.path.exists(mesh_dir_less):
+        #     os.makedirs(mesh_dir_less)
         # shape might be deformed too much over time, using 0.2std
         z_s = torch.normal(
             torch.from_numpy(stats[0].astype(np.float32)),
@@ -507,22 +507,31 @@ def apply_motion(net, seg_dir, cfg, type_fn=None, num_shapes=10):
         ).to(device)
         if cfg['data']['save_zs']:
             np.save(os.path.join(cfg['data']['output_zs_dir'],"zs_{:04d}.npy".format(j)),z_s.detach().cpu().numpy())
-        for i, z_m in enumerate(z_m_list):
-            print("mesh {}, phase {}".format(i, j))
+        for i, z_m in enumerate(z_m_list):        
+            print("mesh {}, phase {}".format(j, i))
+            z_m = z_m.to(device)
             # original motion
-            new_points_m, _, _ = net.decoder.flow(points, None, z_m, inverse=False)
-            new_points_m_out = (
-                np.flip(new_points_m.detach().cpu().numpy(), -1) + 1.0
-            ) / 2.0
-            type_mesh.GetPoints().SetData(numpy_to_vtk(np.squeeze(new_points_m_out)))
-            if os.path.splitext(f)[1]==".vtp":
-                write_vtk_polydata(
-                    type_mesh, os.path.join(tmplt_dir, "phase{}.vtp".format(i))
-                )
-            elif os.path.splitext(f)[1]==".vtu":
-                write_vtu(
-                    type_mesh, os.path.join(tmplt_dir, "phase{}.vtu".format(i))
-                )
+            if j==0:
+                new_points_m, _, _ = net.decoder.flow(points, None, z_m, inverse=False)
+                new_points_m_out = (
+                    np.flip(new_points_m.detach().cpu().numpy(), -1) + 1.0
+                ) / 2.0
+                type_mesh.GetPoints().SetData(numpy_to_vtk(np.squeeze(new_points_m_out)))
+                if os.path.splitext(f)[1]==".vtp":
+                    write_vtk_polydata(
+                        type_mesh, os.path.join(tmplt_dir, "phase{}.vtp".format(i))
+                    )
+                elif os.path.splitext(f)[1]==".vtu":
+                    write_vtu(
+                        type_mesh, os.path.join(tmplt_dir, "phase{}.vtu".format(i))
+                    )
+            else:
+                # Use cached type points after first write
+                type_mesh_m = load_vtk_mesh(os.path.join(tmplt_dir, "phase{}.vtp".format(i)))
+                new_points_m = np.flip(vtk_to_numpy(type_mesh_m.GetPoints().GetData()), axis=-1)
+                new_points_m = torch.from_numpy(new_points_m.copy()).unsqueeze(0).to(device) * 2.0 - 1.0
+            
+            # type to patient morph
             new_points, _, _ = net.decoder.flow(
                 new_points_m, None, z_s, inverse=False
             )
@@ -1676,9 +1685,10 @@ if __name__ == "__main__":
         seg_dir = cfg["data"]["motion_segmentation_dir"]
         mesh_fns = glob.glob(os.path.join(template_dir, "*.vtp"))
         # mesh_fns = glob.glob(os.path.join(template_dir, "*.vtu")) # Using volume mesh
+        net.eval()
 
         if not os.path.exists(os.path.join(seg_dir, "motion.pkl")):
             get_motion(net, cfg, seg_dir, iter_num=100)
         for f in mesh_fns:
             print(f)
-            apply_motion(net, seg_dir, cfg, type_fn=f, num_shapes=10)
+            apply_motion(net, seg_dir, cfg, type_fn=f, num_shapes=100)
