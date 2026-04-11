@@ -464,7 +464,7 @@ def get_motion(net, cfg, seg_dir, iter_num=200):
         pickle.dump(z_m_list, f)
 
 
-def apply_motion(net, seg_dir, cfg, type_fn=None, num_shapes=10):
+def apply_motion(net, seg_dir, cfg, type_fn=None, num_shapes=10, start_num=0):
     motion_fn = os.path.join(seg_dir, "motion.pkl")
     z_m_list = pickle.load(open(motion_fn, "rb"))
     if type_fn is None:
@@ -494,8 +494,9 @@ def apply_motion(net, seg_dir, cfg, type_fn=None, num_shapes=10):
     if not os.path.exists(tmplt_dir):
         os.makedirs(tmplt_dir)
     for j in range(num_shapes):
-        mesh_dir = os.path.join(tmplt_dir, "mesh_{}".format(j))
-        # mesh_dir_less = os.path.join(tmplt_dir, "mesh_{}_less_motion".format(j))
+        id = start_num + j
+        mesh_dir = os.path.join(tmplt_dir, "mesh_{}".format(id))
+        # mesh_dir_less = os.path.join(tmplt_dir, "mesh_{}_less_motion".format(id))
         if not os.path.exists(mesh_dir):
             os.makedirs(mesh_dir)
         # if not os.path.exists(mesh_dir_less):
@@ -506,9 +507,9 @@ def apply_motion(net, seg_dir, cfg, type_fn=None, num_shapes=10):
             std=torch.from_numpy(stats[1].astype(np.float32) * 0.2),
         ).to(device)
         if cfg['data']['save_zs']:
-            np.save(os.path.join(cfg['data']['output_zs_dir'],"zs_{:04d}.npy".format(j)),z_s.detach().cpu().numpy())
+            np.save(os.path.join(cfg['data']['output_zs_dir'],"zs_{:04d}.npy".format(id)),z_s.detach().cpu().numpy())
         for i, z_m in enumerate(z_m_list):        
-            print("mesh {}, phase {}".format(j, i))
+            print("mesh {}, phase {}".format(id, i))
             z_m = z_m.to(device)
             # original motion
             if j==0:
@@ -1389,17 +1390,19 @@ if __name__ == "__main__":
     parser.add_argument("--grid_size", type=int, default=2)
     args = parser.parse_args()
 
-    torch.manual_seed(42)
-    np.random.seed(42)
-
     MODE = ["train"]
     num_block = 1
     with open(args.config, "r") as ymlfile:
         cfg = yaml.full_load(ymlfile)
 
     test_ops = cfg["test_ops"]
+    motion_ops = cfg["motion_ops"]
     if not os.path.exists(cfg["data"]["output_dir"]):
         os.makedirs(cfg["data"]["output_dir"])
+
+    rand_seed = cfg.get("rand_seed",0)
+    torch.manual_seed(rand_seed)
+    np.random.seed(rand_seed)
 
     THRESH = 0.5
     tester = SDF4CHDTester(
@@ -1691,4 +1694,4 @@ if __name__ == "__main__":
             get_motion(net, cfg, seg_dir, iter_num=100)
         for f in mesh_fns:
             print(f)
-            apply_motion(net, seg_dir, cfg, type_fn=f, num_shapes=100)
+            apply_motion(net, seg_dir, cfg, type_fn=f, num_shapes=motion_ops['num_shapes'], start_num=motion_ops['start_num'])
